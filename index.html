@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#fffaf0">
+  <meta name="description" content="GymTool: gestión clara y simple para gimnasios independientes.">
+  <title>GymTool · Gestión de gimnasios</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="auth.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <section class="auth-screen loading-screen" id="authScreen"><div class="loading-card"><span class="brand-mark"><img class="brand-logo" src="assets/gymtool-logo.png" alt=""></span><b>GymTool</b><p>Conectando con tu espacio seguro…</p></div></section>
+  <div class="app-shell" id="appShell" hidden>
+    <aside class="sidebar" id="sidebar">
+      <a class="brand" href="#inicio" aria-label="GymTool inicio"><span class="brand-mark"><img class="brand-logo" src="assets/gymtool-logo.png" alt=""></span><span>gymtool<span class="brand-dot">.</span><small>GESTIÓN SIMPLE</small></span></a>
+      <div class="workspace-label">TU ESPACIO</div>
+      <button class="location-picker" id="locationPicker"><span class="location-avatar">G</span><span class="location-copy"><b id="workspaceName">Mi gimnasio</b><small id="workspaceLocation">Espacio de trabajo</small></span><i data-lucide="chevrons-up-down"></i></button>
+      <div class="workspace-label nav-label">MENÚ PRINCIPAL</div>
+      <nav class="nav-list" aria-label="Navegación principal">
+        <button class="nav-item active" data-page="inicio"><i data-lucide="layout-dashboard"></i>Resumen</button>
+        <button class="nav-item" data-page="socios"><i data-lucide="users-round"></i>Socios<span class="nav-count" id="memberNavCount">0</span></button>
+        <button class="nav-item" data-page="membresias"><i data-lucide="contact-round"></i>Membresías</button>
+        <button class="nav-item" data-page="agenda"><i data-lucide="calendar-days"></i>Agenda</button>
+        <button class="nav-item" data-page="pagos"><i data-lucide="wallet-cards"></i>Pagos</button>
+        <button class="nav-item" data-page="asistencia"><i data-lucide="scan-line"></i>Asistencia</button>
+        <button class="nav-item" data-page="reportes"><i data-lucide="chart-no-axes-combined"></i>Reportes</button>
+      </nav>
+      <div class="sidebar-bottom">
+        <button class="nav-item" data-page="ajustes"><i data-lucide="settings-2"></i>Configuración</button>
+        <div class="help-card"><span class="help-icon"><i data-lucide="life-buoy"></i></span><b>¿Necesitás una mano?</b><p>Estamos para ayudarte a organizar tu gimnasio.</p><button id="helpButton">Centro de ayuda <i data-lucide="arrow-up-right"></i></button></div>
+        <button class="account-button" id="accountButton"><span class="avatar avatar-user">GT</span><span><b>Tu cuenta</b><small>Gimnasio</small></span><i data-lucide="log-out"></i></button>
+      </div>
+    </aside>
+    <main class="main-area">
+      <header class="topbar">
+        <button class="icon-button mobile-menu" id="mobileMenu" aria-label="Abrir menú"><i data-lucide="menu"></i></button>
+        <div class="breadcrumbs"><span id="crumbWorkspace">Mi gimnasio</span><i data-lucide="chevron-right"></i><b id="crumbCurrent">Resumen</b></div>
+        <div class="topbar-actions"><span class="today-label" id="todayLabel"></span><button class="icon-button theme-toggle" id="themeToggle" type="button" aria-label="Cambiar a tema oscuro" title="Cambiar tema"><i data-lucide="moon"></i></button><button class="icon-button notification-button" id="notificationsButton" aria-label="Notificaciones"><i data-lucide="bell"></i><span class="notification-dot"></span></button><span class="avatar avatar-user top-avatar">GT</span></div>
+      </header>
+      <div id="pageContent" class="page-content" tabindex="-1"></div>
+      <footer class="app-footer"><span>© <span id="currentYear">2026</span> GymTool</span><span>Una gestión más simple para tu equipo.</span><span class="demo-note">Datos privados de este gimnasio</span></footer>
+    </main>
+  </div>
+  <div class="toast-region" id="toastRegion" aria-live="polite" aria-atomic="true"></div>
+  <dialog class="app-dialog" id="appDialog" aria-labelledby="dialogTitle"><form method="dialog" id="dialogForm"><div class="dialog-head"><div><span class="eyebrow" id="dialogEyebrow">GESTIÓN</span><h2 id="dialogTitle">Nuevo registro</h2></div><button class="icon-button" value="cancel" aria-label="Cerrar"><i data-lucide="x"></i></button></div><div class="dialog-body" id="dialogBody"></div><div class="dialog-actions"><button class="button button-quiet" value="cancel">Cancelar</button><button class="button button-primary" id="dialogSubmit" value="default">Guardar cambios</button></div></form></dialog>
+</body>
+</html>

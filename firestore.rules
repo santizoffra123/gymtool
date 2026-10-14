@@ -1,0 +1,126 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function staffPath(gymId) {
+      return /databases/$(database)/documents/gyms/$(gymId)/staff/$(request.auth.uid);
+    }
+
+    function hasGymAccess(gymId) {
+      return signedIn() && exists(staffPath(gymId)) && get(staffPath(gymId)).data.active == true;
+    }
+
+    function hasRole(gymId, roles) {
+      return hasGymAccess(gymId) && get(staffPath(gymId)).data.role in roles;
+    }
+
+    function isManager(gymId) {
+      return hasRole(gymId, ['owner', 'admin']);
+    }
+
+    function canManageMembers(gymId) {
+      return hasRole(gymId, ['owner', 'admin', 'reception']);
+    }
+
+    function canManageBilling(gymId) {
+      return hasRole(gymId, ['owner', 'admin', 'reception']);
+    }
+
+    function canManageSchedule(gymId) {
+      return hasRole(gymId, ['owner', 'admin', 'coach', 'reception']);
+    }
+
+    match /users/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['uid', 'name', 'email', 'createdAt']);
+      allow update: if signedIn() && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'phone', 'updatedAt']);
+      allow delete: if false;
+
+      match /gymAccess/{gymId} {
+        allow read: if signedIn() && request.auth.uid == uid;
+        allow create, update: if signedIn() && request.auth.uid == uid
+          && hasGymAccess(gymId)
+          && request.resource.data.keys().hasOnly(['gymId', 'name', 'city', 'role', 'createdAt']);
+        allow delete: if isManager(gymId) && request.auth.uid == uid;
+      }
+    }
+
+    match /gyms/{gymId} {
+      allow create: if signedIn() && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.keys().hasOnly(['name', 'city', 'address', 'email', 'phone', 'hours', 'ownerId', 'createdAt', 'updatedAt']);
+      allow read: if hasGymAccess(gymId);
+      allow update: if isManager(gymId)
+        && request.resource.data.ownerId == resource.data.ownerId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'city', 'address', 'email', 'phone', 'hours', 'updatedAt']);
+      allow delete: if hasRole(gymId, ['owner']);
+
+      match /staff/{staffUid} {
+        allow read: if hasGymAccess(gymId);
+        allow create: if (isManager(gymId) && request.resource.data.role in ['admin', 'reception', 'coach'])
+          || (signedIn() && request.auth.uid == staffUid && staffUid == get(/databases/$(database)/documents/gyms/$(gymId)).data.ownerId
+            && request.resource.data.role == 'owner' && request.resource.data.active == true);
+        allow update: if isManager(gymId) && staffUid != resource.data.uid
+          && request.resource.data.role in ['admin', 'reception', 'coach']
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'email', 'role', 'active', 'updatedAt']);
+        allow delete: if isManager(gymId) && staffUid != request.auth.uid;
+      }
+
+      match /members/{memberId} {
+        allow read: if hasGymAccess(gymId);
+        allow create: if canManageMembers(gymId)
+          && request.resource.data.keys().hasOnly(['name', 'email', 'phone', 'plan', 'status', 'expires', 'joinedAt', 'createdAt', 'updatedAt', 'createdBy'])
+          && request.resource.data.name is string && request.resource.data.name.size() > 0;
+        allow update: if canManageMembers(gymId)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'email', 'phone', 'plan', 'status', 'expires', 'updatedAt']);
+        allow delete: if canManageMembers(gymId);
+      }
+
+      match /plans/{planId} {
+        allow read: if hasGymAccess(gymId);
+        allow create: if canManageBilling(gymId)
+          && request.resource.data.keys().hasOnly(['name', 'price', 'period', 'access', 'active', 'color', 'createdAt', 'updatedAt', 'createdBy'])
+          && request.resource.data.price is number && request.resource.data.price >= 0;
+        allow update: if canManageBilling(gymId)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'price', 'period', 'access', 'active', 'color', 'updatedAt']);
+        allow delete: if canManageBilling(gymId);
+      }
+
+      match /payments/{paymentId} {
+        allow read: if canManageBilling(gymId);
+        allow create: if canManageBilling(gymId)
+          && request.resource.data.keys().hasOnly(['memberId', 'member', 'concept', 'amount', 'method', 'date', 'status', 'createdAt', 'updatedAt', 'createdBy'])
+          && request.resource.data.amount is number && request.resource.data.amount > 0;
+        allow update: if canManageBilling(gymId)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'method', 'updatedAt']);
+        allow delete: if canManageBilling(gymId);
+      }
+
+      match /classes/{classId} {
+        allow read: if hasGymAccess(gymId);
+        allow create: if canManageSchedule(gymId)
+          && request.resource.data.keys().hasOnly(['title', 'coach', 'date', 'time', 'duration', 'capacity', 'enrolled', 'room', 'createdAt', 'updatedAt', 'createdBy'])
+          && request.resource.data.capacity is number && request.resource.data.capacity > 0;
+        allow update: if canManageSchedule(gymId)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'coach', 'date', 'time', 'duration', 'capacity', 'enrolled', 'room', 'updatedAt']);
+        allow delete: if isManager(gymId);
+      }
+
+      match /attendance/{visitId} {
+        allow read: if hasGymAccess(gymId);
+        allow create: if canManageSchedule(gymId)
+          && request.resource.data.keys().hasOnly(['memberId', 'member', 'date', 'time', 'kind', 'createdAt', 'updatedAt', 'createdBy'])
+          && request.resource.data.memberId is string;
+        allow update, delete: if isManager(gymId);
+      }
+
+      match /{document=**} {
+        allow read, write: if false;
+      }
+    }
+  }
+}
